@@ -1042,3 +1042,29 @@ describe('logs the degraded-success warning, not just the failures', () => {
         expect(msg).not.toContain('warning=');
     });
 });
+
+describe('ChatGPT subscription connection probes', () => {
+    const input = {
+        provider: 'chatgpt_subscription',
+        model: 'gpt-5.6-luna',
+        codexAccessToken: 'access',
+        codexRefreshToken: 'refresh',
+        accountId: 'account',
+    };
+    it('uses the runtime transport with encrypted access credentials and cannot rotate unsaved tokens', async () => {
+        expect((await useCase().execute(input)).ok).toBe(true);
+        expect(probedSlot()).toMatchObject({
+            provider: input.provider,
+            apiKey: 'enc()',
+            codexAccessToken: 'enc(access)',
+            accountId: 'account',
+        });
+        expect(probedSlot().codexRefreshToken).toBeUndefined();
+    });
+    it('rejects incomplete subscription credentials before probing', async () => {
+        await expect(
+            useCase().execute({ ...input, codexRefreshToken: '' }),
+        ).rejects.toThrow('codexRefreshToken');
+        expect(probeSlotCall).not.toHaveBeenCalled();
+    });
+});

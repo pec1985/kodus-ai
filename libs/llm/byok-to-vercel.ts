@@ -103,12 +103,20 @@ export function buildModelFromSlot(
     // upstream has retired (Fireworks' deepseek-v4-flash-0731) 404s on every call
     // until the org edits its config, so it runs as its replacement instead.
     const apiKey = decrypt(slot.apiKey);
+    const codexAccessToken = slot.codexAccessToken
+        ? decrypt(slot.codexAccessToken)
+        : undefined;
+    const codexRefreshToken = slot.codexRefreshToken
+        ? decrypt(slot.codexRefreshToken)
+        : undefined;
     return REGISTRY.get(slot.provider).build(
         {
             ...slot,
             apiKey,
             baseURL: repairBaseUrl(slot.baseURL),
             model: canonicalUpstreamModelId(slot.model),
+            codexAccessToken,
+            codexRefreshToken,
         },
         options,
     );

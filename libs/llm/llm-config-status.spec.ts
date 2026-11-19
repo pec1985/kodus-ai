@@ -45,6 +45,24 @@ describe('isByokSlotConfigured — provider-aware auth-material check', () => {
         ).toBe(false);
     });
 
+    it('ChatGPT subscription: requires both tokens and the account id', () => {
+        expect(
+            isByokSlotConfigured({
+                provider: BYOKProvider.CHATGPT_SUBSCRIPTION,
+                codexAccessToken: 'access',
+                codexRefreshToken: 'refresh',
+                accountId: 'account',
+            }),
+        ).toBe(true);
+        expect(
+            isByokSlotConfigured({
+                provider: BYOKProvider.CHATGPT_SUBSCRIPTION,
+                codexAccessToken: 'access',
+                accountId: 'account',
+            }),
+        ).toBe(false);
+    });
+
     it('null / undefined → false', () => {
         expect(isByokSlotConfigured(null)).toBe(false);
         expect(isByokSlotConfigured(undefined)).toBe(false);

@@ -525,7 +525,9 @@ describe('CreateOrUpdateOrganizationParametersUseCase — BYOK write path', () =
                         id: 'cred-brand-new',
                         provider: 'openai_compatible',
                         apiKey: '',
-                        settings: { baseURL: 'https://api.novita.ai/v3/openai' },
+                        settings: {
+                            baseURL: 'https://api.novita.ai/v3/openai',
+                        },
                     },
                 ],
                 models: [
@@ -636,6 +638,36 @@ describe('CreateOrUpdateOrganizationParametersUseCase — BYOK write path', () =
             const cred = persisted.value.credentials[0];
             expect(cred.settings.awsBearerToken).toBe(bearerCipher); // kept
             expect(cred.settings.awsRegion).toBe('us-east-1'); // non-secret verbatim
+        });
+
+        it('accepts and encrypts a complete ChatGPT subscription credential without apiKey', async () => {
+            const incoming = v2({
+                credentials: [
+                    {
+                        id: 'cred-codex',
+                        provider: BYOKProvider.CHATGPT_SUBSCRIPTION,
+                        settings: {
+                            codexAccessToken: 'access-token',
+                            codexRefreshToken: 'refresh-token',
+                            accountId: 'account-id',
+                        },
+                    },
+                ],
+                models: [
+                    {
+                        id: 'model-codex',
+                        credentialId: 'cred-codex',
+                        model: 'gpt-5.6-luna',
+                    },
+                ],
+            });
+            const { useCase, persisted } = buildUseCase(undefined);
+
+            await expect(saveByok(useCase, incoming)).resolves.toBe(true);
+            const settings = persisted.value.credentials[0].settings;
+            expect(decrypt(settings.codexAccessToken)).toBe('access-token');
+            expect(decrypt(settings.codexRefreshToken)).toBe('refresh-token');
+            expect(settings.accountId).toBe('account-id');
         });
 
         it('does NOT throw on a config blob with no top-level main/fallback', async () => {
@@ -1155,8 +1187,51 @@ describe('platform-funded (`kodus`) credential — keyless by design, cloud-only
         await expect(
             saveByok(
                 useCase,
-                v2({ credentials: [{ id: 'cred-openai', provider: 'openai' }] }),
+                v2({
+                    credentials: [{ id: 'cred-openai', provider: 'openai' }],
+                }),
             ),
         ).rejects.toThrow(BadRequestException);
+    });
+});
+
+describe('BYOK save racing a subscription rotation', () => {
+    it('reloads and preserves rotated secrets after losing compare-and-swap', async () => {
+        const config = (access: string, refresh: string): BYOKConfig => ({
+            version: 2,
+            credentials: [
+                {
+                    id: 'codex',
+                    provider: 'chatgpt_subscription',
+                    settings: {
+                        codexAccessToken: access,
+                        codexRefreshToken: refresh,
+                        accountId: 'account',
+                    },
+                },
+            ],
+            models: [
+                { id: 'model', credentialId: 'codex', model: 'gpt-5.6-luna' },
+            ],
+        });
+        const before = config(encrypt('old-access'), encrypt('old-refresh'));
+        const rotated = config(encrypt('new-access'), encrypt('new-refresh'));
+        const { useCase, organizationParametersService, createOrUpdateConfig } =
+            buildUseCase(before);
+        organizationParametersService.findByKey
+            .mockReset()
+            .mockResolvedValueOnce({ uuid: 'parameter', configValue: before })
+            .mockResolvedValue({ uuid: 'parameter', configValue: rotated });
+        const cas = jest
+            .fn()
+            .mockResolvedValueOnce(false)
+            .mockResolvedValueOnce(true);
+        (organizationParametersService as any).compareAndSwapConfigValue = cas;
+        await saveByok(useCase, config('', ''));
+        expect(createOrUpdateConfig).not.toHaveBeenCalled();
+        expect(cas).toHaveBeenCalledTimes(2);
+        const saved = cas.mock.calls[1][2].credentials[0].settings;
+        expect(decrypt(saved.codexAccessToken)).toBe('new-access');
+        expect(decrypt(saved.codexRefreshToken)).toBe('new-refresh');
     });
 });

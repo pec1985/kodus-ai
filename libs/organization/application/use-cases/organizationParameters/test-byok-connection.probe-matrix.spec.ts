@@ -11,7 +11,7 @@
  */
 // @ts-nocheck
 
-// 
+//
 import { REGISTRY } from '@libs/llm/providers';
 import { TestByokConnectionUseCase } from './test-byok-connection.use-case';
 
@@ -61,6 +61,13 @@ describe('connection probe covers every registered provider', () => {
     it.each(PROBED_IDS)('%s issues one real model call', async (id) => {
         const result = await useCase().execute({
             provider: id,
+            ...(id === 'chatgpt_subscription'
+                ? {
+                      codexAccessToken: 'access',
+                      codexRefreshToken: 'refresh',
+                      accountId: 'account',
+                  }
+                : {}),
             apiKey: 'sk-test',
             baseURL: 'https://example.com/v1',
             model: MODEL_FOR[id] ?? 'some-model',
@@ -212,7 +219,9 @@ describe('connection probe covers every registered provider', () => {
             err.name = 'AI_APICallError';
             err.statusCode = 404;
             err.responseBody = JSON.stringify({
-                error: { message: 'Unknown route. Try /v1/models or /v1/responses.' },
+                error: {
+                    message: 'Unknown route. Try /v1/models or /v1/responses.',
+                },
             });
             generateText.mockRejectedValue(err);
             const result = await useCase().execute({
@@ -222,7 +231,9 @@ describe('connection probe covers every registered provider', () => {
                 model: 'gpt-5.4-mini',
             });
 
-            expect(result.message).toContain('https://llm-proxy.example.com/v1');
+            expect(result.message).toContain(
+                'https://llm-proxy.example.com/v1',
+            );
         });
 
         it('still suggests /v1 when the 404 says a route does not exist', async () => {
@@ -240,7 +251,9 @@ describe('connection probe covers every registered provider', () => {
                 model: 'gpt-5.4-mini',
             });
 
-            expect(result.message).toContain('https://llm-proxy.example.com/v1');
+            expect(result.message).toContain(
+                'https://llm-proxy.example.com/v1',
+            );
         });
 
         it('suggests /v1 on an OpenAI-compatible endpoint too', async () => {
@@ -252,7 +265,9 @@ describe('connection probe covers every registered provider', () => {
                 model: 'some-model',
             });
 
-            expect(result.message).toContain('https://llm-proxy.example.com/v1');
+            expect(result.message).toContain(
+                'https://llm-proxy.example.com/v1',
+            );
         });
 
         it('says nothing on a direct key, which has no base URL', async () => {

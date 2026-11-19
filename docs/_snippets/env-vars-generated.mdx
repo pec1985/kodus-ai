@@ -110,6 +110,7 @@
 | Variable | Required | Type | Scope | Description |
 | --- | --- | --- | --- | --- |
 | `API_OPEN_AI_API_KEY` | – | secret | ⚙️ Both | Legacy key for the env model (prefer API_LLM_API_KEY with API_LLM_PROVIDER). Without API_LLM_PROVIDER it is the key of OpenAI, OpenAI-compatible and claude-* models; with it, it is used only for openai and openai_compatible when API_LLM_API_KEY is empty. Also the platform embeddings key. |
+| `API_CODEX_AUTH_FILE` | – | string | ⚙️ Both | Explicit writable Codex auth file for local development; production uses encrypted BYOK. |
 | `API_OPENAI_FORCE_BASE_URL` | – | url | ⚙️ Both | Legacy endpoint override for the env model (prefer API_LLM_BASE_URL with API_LLM_PROVIDER). Without API_LLM_PROVIDER, any value other than api.anthropic.com routes every model through the OpenAI-compatible protocol. |
 | `API_TRUST_JSON_SCHEMA_BASE_URLS` | – | string | ⚙️ Both | Comma-separated baseURL substrings trusted for native json_schema structured output on BYOK openai_compatible providers. A capability allowlist: when a BYOK baseURL contains one of these, the code review agent sends response_format=json_schema instead of the slower json_object fallback. Leave empty unless you run a non-vLLM but schema-capable proxy. |
 | `API_LLM_PROVIDER_MODEL` | – | string | ⚙️ Both | Force a specific model. "auto" = router picks per task. |

@@ -25,6 +25,7 @@ export enum BYOKProvider {
     MOONSHOT = 'moonshot',
     ZAI = 'zai',
     AZURE = 'azure',
+    CHATGPT_SUBSCRIPTION = 'chatgpt_subscription',
     /**
      * Kodus as the provider: the org picks a model and Kodus routes the call
      * over ITS OWN upstream accounts (Anthropic / OpenAI / Google). The

@@ -43,6 +43,7 @@ import { resolveTemperaturePolicy } from './kernel/temperature';
  *  provider actually hosts in production. */
 const PROBE_MODEL: Record<string, string> = {
     openai: 'gpt-5.4',
+    chatgpt_subscription: 'gpt-5.6-luna',
     openai_compatible: 'deepseek-v4-pro',
     anthropic: 'claude-opus-5',
     anthropic_compatible: 'kimi-k2.6',
@@ -77,8 +78,7 @@ describe('every registered provider declares its own facts', () => {
     for (const fact of FACTS) {
         it(`${fact}: declared by every provider`, () => {
             const missing = REGISTRY.ids().filter(
-                (id) =>
-                    !REGISTRY.get(id)[fact] && !NOT_APPLICABLE[id]?.[fact],
+                (id) => !REGISTRY.get(id)[fact] && !NOT_APPLICABLE[id]?.[fact],
             );
             expect(missing).toEqual([]);
         });
@@ -89,7 +89,11 @@ describe('every registered provider declares its own facts', () => {
             it(`${id}`, () => {
                 if (!REGISTRY.has(id)) return;
                 const mod = REGISTRY.get(id);
-                const cfg = { provider: id, model: PROBE_MODEL[id], apiKey: '' };
+                const cfg = {
+                    provider: id,
+                    model: PROBE_MODEL[id],
+                    apiKey: '',
+                };
 
                 const traits = mod.reasoningTraits?.(cfg as any);
                 const temp = mod.temperaturePolicy?.(cfg as any);
@@ -153,15 +157,20 @@ describe('every registered provider declares its own facts', () => {
         const disagreements = Object.keys(PROBE_MODEL)
             .filter((id) => REGISTRY.has(id))
             .map((id) => {
-                const cfg = { provider: id, model: PROBE_MODEL[id], apiKey: '' };
+                const cfg = {
+                    provider: id,
+                    model: PROBE_MODEL[id],
+                    apiKey: '',
+                };
                 return {
                     id,
                     caps:
                         REGISTRY.get(id).capabilities(cfg.model)
                             .structuredOutput === 'none',
                     policy:
-                        REGISTRY.get(id).structuredOutputPolicy?.(cfg as any) ===
-                        'none',
+                        REGISTRY.get(id).structuredOutputPolicy?.(
+                            cfg as any,
+                        ) === 'none',
                 };
             })
             .filter((r) => r.caps !== r.policy);
@@ -177,7 +186,11 @@ describe('every registered provider declares its own facts', () => {
         const viaFallback = Object.keys(PROBE_MODEL)
             .filter((id) => REGISTRY.has(id))
             .map((id) => {
-                const cfg = { provider: id, model: PROBE_MODEL[id], apiKey: '' };
+                const cfg = {
+                    provider: id,
+                    model: PROBE_MODEL[id],
+                    apiKey: '',
+                };
                 return {
                     id,
                     resolved: resolveTemperaturePolicy(REGISTRY.get(id), cfg),

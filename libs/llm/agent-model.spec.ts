@@ -49,11 +49,17 @@ describe('resolveAgentModel', () => {
         expect(out).toMatchObject({ __wrapped: { __built: true } });
     });
 
-    it('keys the wrapper off the same slot and defaults provider to the slot provider', () => {
+    it('stamps the organization scope onto the built and wrapped slot', () => {
         resolveAgentModel(slot, { organizationId: 'org-1' });
+        const scopedSlot = { ...slot, organizationId: 'org-1' };
+        expect(buildModelFromSlot).toHaveBeenCalledWith(
+            scopedSlot,
+            undefined,
+            undefined,
+        );
         const cfg = (wrapByokModel as jest.Mock).mock.calls[0][1];
         expect(cfg).toMatchObject({
-            byokConfig: slot,
+            byokConfig: scopedSlot,
             organizationId: 'org-1',
             provider: 'anthropic',
         });
@@ -73,5 +79,4 @@ describe('resolveAgentModel', () => {
         expect(cfg.queueTimeoutMs).toBe(5000);
         expect(cfg.reporter).toBe(reporter);
     });
-
 });

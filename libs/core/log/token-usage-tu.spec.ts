@@ -1,5 +1,6 @@
 import {
     CUSTOM_AGENT_RUN_PREFIX,
+    CHATGPT_SUBSCRIPTION_PREFIX,
     deriveArea,
     deriveTu,
     ROUTING_TASKS,
@@ -8,6 +9,7 @@ import {
 } from './token-usage-tu';
 import {
     BACKFILL_CUSTOM_AGENT_RUN_PREFIX,
+    BACKFILL_CHATGPT_SUBSCRIPTION_PREFIX,
     BACKFILL_ROUTING_TASKS,
     BACKFILL_SUGGESTION_RUN_NAMES,
     BACKFILL_SYSTEM_RUN_NAMES,
@@ -65,7 +67,7 @@ describe('deriveTu', () => {
         });
     });
 
-    it('canonicalizes the model to the last ":"-segment', () => {
+    it('canonicalizes model ids while retaining subscription access identity', () => {
         expect(
             deriveTu({
                 ...usage,
@@ -76,6 +78,12 @@ describe('deriveTu', () => {
             deriveTu({ ...usage, 'gen_ai.response.model': 'openai:gpt-5' })!
                 .model,
         ).toBe('gpt-5');
+        expect(
+            deriveTu({
+                ...usage,
+                'gen_ai.response.model': 'chatgpt_subscription:gpt-5.6-luna',
+            })!.model,
+        ).toBe('chatgpt_subscription:gpt-5.6-luna');
         // bare name (no provider prefix) is unchanged
         expect(deriveTu(usage)!.model).toBe('claude-sonnet-5');
         // Bedrock `:<version>` suffix is stripped to the model, NOT stored as "0"
@@ -311,6 +319,20 @@ describe('deriveArea', () => {
     it('handles non-string input', () => {
         expect(deriveArea(undefined)).toBe('other');
         expect(deriveArea(42 as any)).toBe('other');
+    });
+
+    it('preserves the ChatGPT subscription prefix in write and backfill paths', () => {
+        const model = 'chatgpt_subscription:gpt-5.6-luna';
+
+        expect(
+            deriveTu({
+                'gen_ai.usage.total_tokens': 1,
+                'gen_ai.response.model': model,
+            })?.model,
+        ).toBe(model);
+        expect(BACKFILL_CHATGPT_SUBSCRIPTION_PREFIX).toBe(
+            CHATGPT_SUBSCRIPTION_PREFIX,
+        );
     });
 
     // The Mongo backfill mirrors deriveArea as an aggregation $switch with its

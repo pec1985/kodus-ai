@@ -332,7 +332,7 @@ export class OrganizationParametersController {
     @ApiOperation({
         summary: 'Per-model UI capabilities',
         description:
-            "Provider-owned hints for the connect form: whether a model accepts sampling params (Temperature) and whether it can reason (and at which levels). Read straight from the provider module in the registry — never hand-coded in the web — so a community-contributed provider change flows to the UI automatically. `model` is a plain model id (not a secret), so it travels in the query string.",
+            'Provider-owned hints for the connect form: whether a model accepts sampling params (Temperature) and whether it can reason (and at which levels). Read straight from the provider module in the registry — never hand-coded in the web — so a community-contributed provider change flows to the UI automatically. `model` is a plain model id (not a secret), so it travels in the query string.',
     })
     public async modelCapabilities(
         @Query('provider') provider: string,
@@ -412,6 +412,9 @@ export class OrganizationParametersController {
                 awsSecretAccessKey: { type: 'string' },
                 awsRegion: { type: 'string' },
                 awsSessionToken: { type: 'string' },
+                codexAccessToken: { type: 'string' },
+                codexRefreshToken: { type: 'string' },
+                accountId: { type: 'string' },
             },
         },
     })
@@ -439,6 +442,9 @@ export class OrganizationParametersController {
             awsSecretAccessKey?: string;
             awsRegion?: string;
             awsSessionToken?: string;
+            codexAccessToken?: string;
+            codexRefreshToken?: string;
+            accountId?: string;
         },
     ): Promise<TestByokResult> {
         return await this.testByokConnectionUseCase.execute(
@@ -647,7 +653,6 @@ export class OrganizationParametersController {
             this.request?.user?.organization?.uuid,
         );
     }
-
 
     @Get('/cockpit-metrics-visibility')
     @UseGuards(PolicyGuard)

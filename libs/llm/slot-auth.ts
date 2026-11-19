@@ -4,6 +4,9 @@ import type { NormalizedModel } from './byok-config';
 
 type AuthMaterial = {
     apiKey?: unknown;
+    codexAccessToken?: unknown;
+    codexRefreshToken?: unknown;
+    accountId?: unknown;
     awsBearerToken?: unknown;
     awsAccessKeyId?: unknown;
     awsSecretAccessKey?: unknown;
@@ -13,7 +16,13 @@ type AuthMaterial = {
 export function byokAuthKind(
     provider: string | undefined,
     material: AuthMaterial | null | undefined,
-): 'platform' | 'api-key' | 'bedrock-bearer' | 'bedrock-iam' | undefined {
+):
+    | 'platform'
+    | 'api-key'
+    | 'bedrock-bearer'
+    | 'bedrock-iam'
+    | 'codex'
+    | undefined {
     const has = (value: unknown) =>
         typeof value === 'string' && value.trim().length > 0;
     if (isPlatformFundedProvider(provider)) return 'platform';
@@ -22,6 +31,13 @@ export function byokAuthKind(
         if (has(material?.awsAccessKeyId) && has(material?.awsSecretAccessKey))
             return 'bedrock-iam';
         return undefined;
+    }
+    if (provider === BYOKProvider.CHATGPT_SUBSCRIPTION) {
+        return has(material?.codexAccessToken) &&
+            has(material?.codexRefreshToken) &&
+            has(material?.accountId)
+            ? 'codex'
+            : undefined;
     }
     return has(material?.apiKey) ? 'api-key' : undefined;
 }

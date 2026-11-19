@@ -148,6 +148,7 @@ export class CreateOrUpdateOrganizationParametersUseCase implements IUseCase {
         organizationParametersKey: OrganizationParametersKey,
         configValue: any,
         organizationAndTeamData: OrganizationAndTeamData,
+        attempt = 0,
     ): Promise<boolean> {
         // Write-time referential integrity for the untyped config blob (RFC §13.8):
         // the DTO is `configValue: any`, so this is the ONLY server-side schema
@@ -211,12 +212,35 @@ export class CreateOrUpdateOrganizationParametersUseCase implements IUseCase {
         // any non-v2 shape, so there is no legacy partial-save merge to preserve).
         const mergedConfigValue = processedConfigValue;
 
-        const result =
-            await this.organizationParametersService.createOrUpdateConfig(
-                organizationParametersKey,
-                mergedConfigValue,
-                organizationAndTeamData,
+        const hasSubscription =
+            isByokConfig(existingConfig) &&
+            existingConfig.credentials.some(
+                (c) => c.provider === BYOKProvider.CHATGPT_SUBSCRIPTION,
             );
+        const result =
+            hasSubscription && getConfigValue?.uuid
+                ? await this.organizationParametersService.compareAndSwapConfigValue(
+                      getConfigValue.uuid,
+                      existingConfig,
+                      mergedConfigValue,
+                  )
+                : await this.organizationParametersService.createOrUpdateConfig(
+                      organizationParametersKey,
+                      mergedConfigValue,
+                      organizationAndTeamData,
+                  );
+        if (hasSubscription && !result) {
+            if (attempt >= 2)
+                throw new BadRequestException(
+                    'BYOK credentials changed concurrently. Reload settings and retry.',
+                );
+            return this.saveByokConfig(
+                organizationParametersKey,
+                configValue,
+                organizationAndTeamData,
+                attempt + 1,
+            );
+        }
 
         this.eventEmitter.emit(AuditLogEvents.ORG_SETTINGS, {
             organizationAndTeamData,
@@ -593,6 +617,13 @@ export class CreateOrUpdateOrganizationParametersUseCase implements IUseCase {
             return;
         }
 
+        if (cred?.provider === BYOKProvider.CHATGPT_SUBSCRIPTION) {
+            if (!auth)
+                throw new BadRequestException(
+                    'ChatGPT subscription credential requires codexAccessToken, codexRefreshToken, and accountId',
+                );
+            return;
+        }
         if (!auth) {
             throw new BadRequestException(
                 `apiKey is required for the ${cred?.provider ?? 'unknown'} BYOK credential`,
