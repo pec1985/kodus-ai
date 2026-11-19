@@ -20,6 +20,7 @@ import { ADVANCED_FIELDS } from "./_modals/edit-key/_components/credential-forms
 import { ByokCredentialsInput } from "./_modals/edit-key/_components/credentials-input";
 import type { EditKeyForm } from "./_modals/edit-key/_types";
 import {
+    providerHasCredentials,
     providerSettingDefaults,
     unownedStoredSettings,
 } from "./_modals/edit-key/credential-config";
@@ -110,6 +111,7 @@ export function RotatePanel({
     // a blank secret keeps the stored ciphertext, which we can't re-probe without
     // the plaintext, so we probe the STORED credential instead (testBYOKModel).
     const typedNewSecret = (values: EditKeyForm): boolean =>
+        !!values.codexAccessToken?.trim() ||
         !!values.apiKey?.trim() ||
         !!values.awsBearerToken?.trim() ||
         (!!values.awsAccessKeyId?.trim() &&
@@ -134,6 +136,21 @@ export function RotatePanel({
     // The stored-credential probe is what surfaces a lapsed key (e.g. an expired
     // Bedrock bearer token) here, on demand, instead of only at review time.
     const runTest = async (): Promise<TestBYOKResult | null> => {
+        const codexValues = form.getValues();
+        if (
+            codexValues.provider === "chatgpt_subscription" &&
+            (codexValues.codexAccessToken?.trim() ||
+                codexValues.codexRefreshToken?.trim() ||
+                codexValues.accountId !== settings.accountId) &&
+            !providerHasCredentials(codexValues)
+        ) {
+            form.setError("accountId", {
+                type: "manual",
+                message:
+                    "Import complete credentials to replace tokens or change the account ID.",
+            });
+            return null;
+        }
         if (!probeModelId) return null;
         const valid = await form.trigger();
         if (!valid) return null;
@@ -154,6 +171,11 @@ export function RotatePanel({
                       baseURL: values.baseURL?.trim() || undefined,
                       vertexLocation:
                           values.vertexLocation?.trim() || undefined,
+                      codexAccessToken:
+                          values.codexAccessToken?.trim() || undefined,
+                      codexRefreshToken:
+                          values.codexRefreshToken?.trim() || undefined,
+                      accountId: values.accountId?.trim() || undefined,
                       awsBearerToken:
                           values.awsBearerToken?.trim() || undefined,
                       awsAccessKeyId:
@@ -199,6 +221,21 @@ export function RotatePanel({
     };
 
     const handleTestAndSave = form.handleSubmit(async (values) => {
+        const codexValues = form.getValues();
+        if (
+            codexValues.provider === "chatgpt_subscription" &&
+            (codexValues.codexAccessToken?.trim() ||
+                codexValues.codexRefreshToken?.trim() ||
+                codexValues.accountId !== settings.accountId) &&
+            !providerHasCredentials(codexValues)
+        ) {
+            form.setError("accountId", {
+                type: "manual",
+                message:
+                    "Import complete credentials to replace tokens or change the account ID.",
+            });
+            return null;
+        }
         // Gate the SAVE on a baseURL change independently of probeModelId: the
         // probe guard below is skipped when there is no probe model, so without
         // this a blank-secret endpoint edit would persist unauthenticated.

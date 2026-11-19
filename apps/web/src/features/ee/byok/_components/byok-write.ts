@@ -6,6 +6,7 @@ import type {
     BYOKRouting,
     ReasoningEffort,
 } from "../_types";
+import { nonSecretStoredSettings } from "./_modals/edit-key/credential-config";
 
 /**
  * The config-level fields of a single model slot (everything on
@@ -157,6 +158,10 @@ export const credentialSettingsFromConfig = (
     const settings: Record<string, unknown> = {};
     if (cfg.baseURL) settings.baseURL = cfg.baseURL;
     if (cfg.vertexLocation) settings.vertexLocation = cfg.vertexLocation;
+    if (cfg.codexAccessToken) settings.codexAccessToken = cfg.codexAccessToken;
+    if (cfg.codexRefreshToken)
+        settings.codexRefreshToken = cfg.codexRefreshToken;
+    if (cfg.accountId) settings.accountId = cfg.accountId;
     if (cfg.awsRegion) settings.awsRegion = cfg.awsRegion;
     if (cfg.awsBearerToken) settings.awsBearerToken = cfg.awsBearerToken;
     if (cfg.awsAccessKeyId) settings.awsAccessKeyId = cfg.awsAccessKeyId;
@@ -205,6 +210,7 @@ const keepCredential = (
 
     const typed = apiKeyOverride?.trim();
     next.apiKey = typed ? apiKeyOverride! : "";
+    if (cred.settings) next.settings = nonSecretStoredSettings(cred.settings);
     if (settingsOverride) next.settings = settingsOverride;
     return next;
 };

@@ -11,9 +11,9 @@
  *  so the union has ONE source of truth across front and back (type-only import
  *  → erased at build, no runtime coupling). Imported for local use in this file
  *  AND re-exported so existing `import { LlmTask } from "../../_types"` keep working. */
-import type { LlmTask } from '@libs/llm/llm-tasks';
+import type { LlmTask } from "@libs/llm/llm-tasks";
 
-export type ReasoningEffort = 'none' | 'low' | 'medium' | 'high';
+export type ReasoningEffort = "none" | "low" | "medium" | "high";
 
 export type { LlmTask };
 
@@ -55,7 +55,7 @@ export type BYOKModelConfig = {
 
 /** Routing policy (Manual = static task→model; Auto = the future router). */
 export type BYOKRouting = {
-    mode?: 'manual' | 'auto';
+    mode?: "manual" | "auto";
     /** Model id per task (Manual policy). */
     taskOverrides?: Partial<Record<LlmTask, string>>;
     /** Default model id when a task has no explicit override. */
@@ -91,6 +91,9 @@ export type BYOKConnectInput = {
     vertexLocation?: string;
     /** Bedrock API key (bearer token). Preferred auth path when
      *  provider === "amazon_bedrock"; takes precedence over IAM keys. */
+    codexAccessToken?: string;
+    codexRefreshToken?: string;
+    accountId?: string;
     awsBearerToken?: string;
     /** Advanced: static IAM user credentials for Amazon Bedrock. Used
      *  only when awsBearerToken is not set. */

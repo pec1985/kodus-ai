@@ -19,6 +19,11 @@ import type { EditKeyForm } from "./_types";
  * provider's credential.
  */
 export const PROVIDER_SETTING_KEYS = {
+    chatgpt_subscription: [
+        "codexAccessToken",
+        "codexRefreshToken",
+        "accountId",
+    ],
     google_vertex: ["vertexLocation"],
     amazon_bedrock: [
         "awsBearerToken",
@@ -42,6 +47,12 @@ const CREDS_PRESENT: Record<string, CredsPresent> = {
     // Kodus routes with ITS OWN upstream keys — there is nothing to enter, so
     // the form is always "complete enough" to probe and save.
     [KODUS_PROVIDER_ID]: () => true,
+    chatgpt_subscription: (d) =>
+        !!(
+            d.codexAccessToken?.trim() &&
+            d.codexRefreshToken?.trim() &&
+            d.accountId?.trim()
+        ),
     amazon_bedrock: (d) =>
         !!(
             d.awsBearerToken?.trim() ||
@@ -72,6 +83,8 @@ export const providerOwnsField = (
  * cannot import a value from.
  */
 const SECRET_SETTING_KEYS: ReadonlySet<string> = new Set([
+    "codexAccessToken",
+    "codexRefreshToken",
     "awsBearerToken",
     "awsAccessKeyId",
     "awsSecretAccessKey",
@@ -250,6 +263,22 @@ const refineBedrock: CreateRefiner = (data, ctx) => {
 };
 
 const CREATE_REFINERS: Record<string, CreateRefiner> = {
+    chatgpt_subscription: (data, ctx) => {
+        for (const key of [
+            "codexAccessToken",
+            "codexRefreshToken",
+            "accountId",
+        ] as const) {
+            if (!data[key]?.trim())
+                ctx.addIssue({
+                    code: "custom",
+                    path: [key],
+                    message:
+                        "Import Codex credentials or fill in all three fields.",
+                });
+        }
+        return true;
+    },
     amazon_bedrock: refineBedrock,
     // Handled with no issues: a keyless credential IS the valid shape here.
     [KODUS_PROVIDER_ID]: () => true,
