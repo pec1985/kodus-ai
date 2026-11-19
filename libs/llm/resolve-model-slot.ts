@@ -68,6 +68,9 @@ function slotFromModel(
     const hasAuth = isByokSlotConfigured({
         provider: provider as BYOKProvider,
         apiKey,
+        codexAccessToken: STR(s.codexAccessToken),
+        codexRefreshToken: STR(s.codexRefreshToken),
+        accountId: STR(s.accountId),
         awsBearerToken: STR(s.awsBearerToken),
         awsAccessKeyId: STR(s.awsAccessKeyId),
         awsSecretAccessKey: STR(s.awsSecretAccessKey),
@@ -92,6 +95,13 @@ function slotFromModel(
         awsSecretAccessKey: STR(s.awsSecretAccessKey),
         awsRegion: STR(s.awsRegion),
         awsSessionToken: STR(s.awsSessionToken),
+        codexAccessToken: STR(s.codexAccessToken),
+        codexRefreshToken: STR(s.codexRefreshToken),
+        accountId: STR(s.accountId),
+        codexNoRetainedReasoning:
+            typeof s.codexNoRetainedReasoning === 'boolean'
+                ? s.codexNoRetainedReasoning
+                : undefined,
         // OpenRouter provider-pinning surfaced from settings onto the slot so the
         // reasoning/routing layer applies it (OpenRouter-only; undefined elsewhere).
         openrouterProviderOrder: STR_ARRAY(s.openrouterProviderOrder),

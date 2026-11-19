@@ -21,6 +21,7 @@ import './azure';
 import './zai';
 // Kodus-as-provider (routing brand over the three modules above; cloud-only).
 import './kodus';
+import './codex';
 
 export { REGISTRY, registerProvider } from './kernel/registry';
 export type { ProviderModule, SelfHostedEnvVars } from './kernel/types';

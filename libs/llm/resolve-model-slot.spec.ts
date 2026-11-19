@@ -1,7 +1,4 @@
-import {
-    resolveDefaultSlot,
-    resolveModelSlot,
-} from './resolve-model-slot';
+import { resolveDefaultSlot, resolveModelSlot } from './resolve-model-slot';
 import type { BYOKConfig } from './byok-config';
 
 describe('resolveDefaultSlot — the effective default slot for a config', () => {
@@ -9,7 +6,12 @@ describe('resolveDefaultSlot — the effective default slot for a config', () =>
         const v2: BYOKConfig = {
             version: 2,
             credentials: [
-                { id: 'c1', provider: 'openai_compatible', apiKey: 'enc-C1', settings: { baseURL: 'https://h:8000/v1' } },
+                {
+                    id: 'c1',
+                    provider: 'openai_compatible',
+                    apiKey: 'enc-C1',
+                    settings: { baseURL: 'https://h:8000/v1' },
+                },
             ],
             models: [{ id: 'm1', credentialId: 'c1', model: 'kimi-k2.7-code' }],
         };
@@ -44,8 +46,12 @@ describe('resolveDefaultSlot — the effective default slot for a config', () =>
     it('managed:true credential → null (env-default branch runs)', () => {
         const v2: BYOKConfig = {
             version: 2,
-            credentials: [{ id: 'mgd', provider: 'openai_compatible', managed: true }],
-            models: [{ id: 'm1', credentialId: 'mgd', model: 'kimi-k2.7-code' }],
+            credentials: [
+                { id: 'mgd', provider: 'openai_compatible', managed: true },
+            ],
+            models: [
+                { id: 'm1', credentialId: 'mgd', model: 'kimi-k2.7-code' },
+            ],
         };
         expect(resolveDefaultSlot(v2)).toBeUndefined();
     });
@@ -65,9 +71,15 @@ describe('resolveDefaultSlot — the effective default slot for a config', () =>
         expect(resolveDefaultSlot(null)).toBeUndefined();
         expect(resolveDefaultSlot('garbage')).toBeUndefined();
         expect(resolveDefaultSlot({ version: 2 })).toBeUndefined();
-        expect(resolveDefaultSlot({ version: 1, main: {} } as any)).toBeUndefined();
-        expect(() => resolveDefaultSlot({ main: 42, fallback: [] } as any)).not.toThrow();
-        expect(resolveDefaultSlot({ main: 42, fallback: [] } as any)).toBeUndefined();
+        expect(
+            resolveDefaultSlot({ version: 1, main: {} } as any),
+        ).toBeUndefined();
+        expect(() =>
+            resolveDefaultSlot({ main: 42, fallback: [] } as any),
+        ).not.toThrow();
+        expect(
+            resolveDefaultSlot({ main: 42, fallback: [] } as any),
+        ).toBeUndefined();
     });
 });
 
@@ -75,7 +87,12 @@ describe('resolveModelSlot — materialize ONE v2 model slot by id (04b)', () =>
     const v2: BYOKConfig = {
         version: 2,
         credentials: [
-            { id: 'c1', provider: 'openai_compatible', apiKey: 'enc-C1', settings: { baseURL: 'https://h/v1' } },
+            {
+                id: 'c1',
+                provider: 'openai_compatible',
+                apiKey: 'enc-C1',
+                settings: { baseURL: 'https://h/v1' },
+            },
             { id: 'mgd', provider: 'openai', managed: true },
         ],
         models: [
@@ -112,7 +129,13 @@ describe('resolveModelSlot — OpenRouter provider pinning surfaces from setting
         credentials: [
             { id: 'c1', provider: 'openrouter', apiKey: 'enc-1', settings },
         ],
-        models: [{ id: 'm1', credentialId: 'c1', model: 'anthropic/claude-sonnet-4-6' }],
+        models: [
+            {
+                id: 'm1',
+                credentialId: 'c1',
+                model: 'anthropic/claude-sonnet-4-6',
+            },
+        ],
     });
 
     it('carries a non-empty provider order and an explicit allowFallbacks=false', () => {
@@ -136,14 +159,19 @@ describe('resolveModelSlot — OpenRouter provider pinning surfaces from setting
     });
 
     it('collapses an EMPTY provider order to undefined, not []', () => {
-        const slot = resolveModelSlot(orCfg({ openrouterProviderOrder: [] }), 'm1');
+        const slot = resolveModelSlot(
+            orCfg({ openrouterProviderOrder: [] }),
+            'm1',
+        );
         expect(slot?.openrouterProviderOrder).toBeUndefined();
     });
 
     it('collapses a non-array / all-empty provider order to undefined', () => {
         expect(
-            resolveModelSlot(orCfg({ openrouterProviderOrder: 'anthropic' }), 'm1')
-                ?.openrouterProviderOrder,
+            resolveModelSlot(
+                orCfg({ openrouterProviderOrder: 'anthropic' }),
+                'm1',
+            )?.openrouterProviderOrder,
         ).toBeUndefined();
         expect(
             resolveModelSlot(orCfg({ openrouterProviderOrder: ['', ''] }), 'm1')
@@ -164,7 +192,10 @@ describe('resolveModelSlot — OpenRouter provider pinning surfaces from setting
     });
 
     it('leaves the pin fields undefined when settings carry no pin', () => {
-        const slot = resolveModelSlot(orCfg({ baseURL: 'https://openrouter.ai/api/v1' }), 'm1');
+        const slot = resolveModelSlot(
+            orCfg({ baseURL: 'https://openrouter.ai/api/v1' }),
+            'm1',
+        );
         expect(slot?.openrouterProviderOrder).toBeUndefined();
         expect(slot?.openrouterAllowFallbacks).toBeUndefined();
     });
@@ -193,7 +224,9 @@ describe('resolveDefaultSlot — default-id selection boundaries', () => {
     it('falls back to the FIRST model when defaultModelId names a model that does not exist', () => {
         // A stale/deleted default id must not win over — nor silently null out —
         // the resolution; it degrades to models[0].
-        expect(resolveDefaultSlot(cfg({ defaultModelId: 'ghost' }))?.model).toBe('gpt-4o');
+        expect(
+            resolveDefaultSlot(cfg({ defaultModelId: 'ghost' }))?.model,
+        ).toBe('gpt-4o');
     });
 
     it('ignores model entries without an id when picking the first model', () => {
@@ -248,7 +281,10 @@ describe('resolveModelSlot — Amazon Bedrock authenticates with aws* fields, NO
 
     it('resolves a slot from awsBearerToken (no apiKey)', () => {
         const slot = resolveModelSlot(
-            bedrockCfg({ awsBearerToken: 'enc-bearer', awsRegion: 'us-east-1' }),
+            bedrockCfg({
+                awsBearerToken: 'enc-bearer',
+                awsRegion: 'us-east-1',
+            }),
             'mb',
         );
         expect(slot).toMatchObject({
@@ -289,7 +325,13 @@ describe('resolveModelSlot — platform-funded (`kodus`) credential', () => {
     const v2: BYOKConfig = {
         version: 2,
         credentials: [{ id: 'kd', provider: 'kodus' }],
-        models: [{ id: 'm-kodus', credentialId: 'kd', model: 'fireworks/accounts/fireworks/models/deepseek-v4-flash-0731' }],
+        models: [
+            {
+                id: 'm-kodus',
+                credentialId: 'kd',
+                model: 'fireworks/accounts/fireworks/models/deepseek-v4-flash-0731',
+            },
+        ],
         routing: { defaultModelId: 'm-kodus' },
     };
 
@@ -306,5 +348,57 @@ describe('resolveModelSlot — platform-funded (`kodus`) credential', () => {
 
     it('is the effective default slot — it is real BYOK, not the managed/env path', () => {
         expect(resolveDefaultSlot(v2)?.provider).toBe('kodus');
+    });
+});
+
+describe('resolveModelSlot — ChatGPT subscription token credentials', () => {
+    const config: BYOKConfig = {
+        version: 2,
+        credentials: [
+            {
+                id: 'codex-credential',
+                provider: 'chatgpt_subscription',
+                settings: {
+                    codexAccessToken: 'encrypted-access',
+                    codexRefreshToken: 'encrypted-refresh',
+                    accountId: 'account-id',
+                },
+            },
+        ],
+        models: [
+            {
+                id: 'codex-model',
+                credentialId: 'codex-credential',
+                model: 'gpt-5.6-luna',
+            },
+        ],
+    };
+
+    it('resolves a token-only credential without degrading to the managed default', () => {
+        expect(resolveModelSlot(config, 'codex-model')).toMatchObject({
+            provider: 'chatgpt_subscription',
+            model: 'gpt-5.6-luna',
+            credentialId: 'codex-credential',
+            apiKey: '',
+            codexAccessToken: 'encrypted-access',
+            codexRefreshToken: 'encrypted-refresh',
+            accountId: 'account-id',
+        });
+    });
+
+    it('rejects an incomplete token credential', () => {
+        const incomplete: BYOKConfig = {
+            ...config,
+            credentials: [
+                {
+                    ...config.credentials[0],
+                    settings: {
+                        codexAccessToken: 'encrypted-access',
+                        accountId: 'account-id',
+                    },
+                },
+            ],
+        };
+        expect(resolveModelSlot(incomplete, 'codex-model')).toBeUndefined();
     });
 });

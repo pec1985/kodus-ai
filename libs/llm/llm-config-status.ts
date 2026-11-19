@@ -39,7 +39,7 @@ const asString = (value: unknown): string | undefined =>
  *    normalizes to the env path and carries no BYOK material of its own;
  *  - a real BYOK credential → resolves iff the provider is set, the model names
  *    a model, and the credential carries usable material for its provider
- *    (`isByokSlotConfigured`, including Bedrock's aws* auth).
+ *    (`isByokSlotConfigured`, including non-apiKey auth shapes).
  *
  * Only credential MATERIAL is inspected here to build the boolean — the caller
  * must never surface the reconstructed slot's secret fields. Nothing secret is
@@ -73,6 +73,9 @@ export function isV2ModelResolvable(
         awsBearerToken: asString(settings.awsBearerToken),
         awsAccessKeyId: asString(settings.awsAccessKeyId),
         awsSecretAccessKey: asString(settings.awsSecretAccessKey),
+        codexAccessToken: asString(settings.codexAccessToken),
+        codexRefreshToken: asString(settings.codexRefreshToken),
+        accountId: asString(settings.accountId),
     };
 
     return isByokSlotConfigured(slot);

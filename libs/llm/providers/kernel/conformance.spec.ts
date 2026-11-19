@@ -33,6 +33,7 @@ import { moonshotModule } from '../moonshot/index';
 import { azureModule } from '../azure/index';
 import { zaiModule } from '../zai/index';
 import { kodusModule } from '../kodus';
+import { codexSubscriptionModule } from '../codex';
 
 import openaiPlain from '../openai/__fixtures__/plain.json';
 import openaiReasoning from '../openai/__fixtures__/reasoning.json';
@@ -54,6 +55,13 @@ interface ProviderCase {
 }
 
 const CASES: ProviderCase[] = [
+    {
+        module: codexSubscriptionModule,
+        model: 'gpt-5.6-luna',
+        fixtures: [
+            { name: 'reasoning', fixture: openaiReasoning as ProviderFixture },
+        ],
+    },
     {
         module: openaiModule,
         model: 'o3',
@@ -105,7 +113,9 @@ const CASES: ProviderCase[] = [
     {
         module: moonshotModule,
         model: 'kimi-k2.7-code',
-        fixtures: [{ name: 'plain', fixture: moonshotPlain as ProviderFixture }],
+        fixtures: [
+            { name: 'plain', fixture: moonshotPlain as ProviderFixture },
+        ],
     },
     {
         module: azureModule,
@@ -269,7 +279,7 @@ const cfg = (over: Partial<ProviderBuildConfig> = {}): ProviderBuildConfig =>
         model: 'gpt-4o',
         apiKey: 'sk-test-conformance',
         ...over,
-    } as ProviderBuildConfig);
+    }) as ProviderBuildConfig;
 
 const fx = (over: Partial<ProviderFixture> = {}): ProviderFixture => ({
     text: 'ok',
@@ -298,8 +308,14 @@ describe('contract: normalizeSdkUsage — output-shape zoo (A) never throws, alw
     // (typed, inspectable), as long as it is NOT a WRONG value masquerading as right.
     const zooZero: Array<[string, unknown]> = [
         ['[A3] usage as array (object expected)', { usage: [1, 2, 3] }],
-        ['[A4] wrapper key {result:{usage}}', { result: { usage: { inputTokens: 5 } } }],
-        ['[A10] renamed snake_case keys (relies on SDK camelCase)', { usage: { input_tokens: 5, output_tokens: 10 } }],
+        [
+            '[A4] wrapper key {result:{usage}}',
+            { result: { usage: { inputTokens: 5 } } },
+        ],
+        [
+            '[A10] renamed snake_case keys (relies on SDK camelCase)',
+            { usage: { input_tokens: 5, output_tokens: 10 } },
+        ],
         ['[A14] empty object raw', {}],
         ['[A17] null raw', null],
         ['[A18] primitive "ok"', 'ok'],
@@ -365,16 +381,26 @@ describe('contract: normalizeSdkUsage — semantic-but-wrong (B)', () => {
     // NOT ??-replaced and is NOT coerced). A wrong-typed value ships silently —
     // the #1786 class. Pinned as it.failing asserting the CORRECT (number) type;
     // green today, turns red when usage.ts coerces/rejects non-number counts.
-    it.failing('[B21] number-as-string count should be a number, not passed through', () => {
-        const u = normalizeSdkUsage({ usage: { inputTokens: '5', outputTokens: 10 } });
-        expect(typeof u.input).toBe('number');
-    });
+    it.failing(
+        '[B21] number-as-string count should be a number, not passed through',
+        () => {
+            const u = normalizeSdkUsage({
+                usage: { inputTokens: '5', outputTokens: 10 },
+            });
+            expect(typeof u.input).toBe('number');
+        },
+    );
 
     // [B23] Boolean/non-number as a count — same silent passthrough class.
-    it.failing('[B23] boolean count should be a number, not passed through', () => {
-        const u = normalizeSdkUsage({ usage: { inputTokens: true, outputTokens: 10 } });
-        expect(typeof u.input).toBe('number');
-    });
+    it.failing(
+        '[B23] boolean count should be a number, not passed through',
+        () => {
+            const u = normalizeSdkUsage({
+                usage: { inputTokens: true, outputTokens: 10 },
+            });
+            expect(typeof u.input).toBe('number');
+        },
+    );
 
     // [B25] Dangling / out-of-range reference: reasoning is a SUBSET of output
     // (usage.ts doc: "reasoning is a detail-OF output"; the aggregate at
@@ -382,12 +408,18 @@ describe('contract: normalizeSdkUsage — semantic-but-wrong (B)', () => {
     // with reasoningTokens > outputTokens violates that, and normalizeSdkUsage
     // does NOT clamp — the impossible value ships silently. Pinned it.failing
     // asserting the clamp (green today, red when usage.ts:25-26 clamps).
-    it.failing('[B25] reasoning > output should be clamped to a subset (<= output)', () => {
-        const u = normalizeSdkUsage({
-            usage: { outputTokens: 10, outputTokenDetails: { reasoningTokens: 100 } },
-        });
-        expect(u.reasoning).toBeLessThanOrEqual(u.output);
-    });
+    it.failing(
+        '[B25] reasoning > output should be clamped to a subset (<= output)',
+        () => {
+            const u = normalizeSdkUsage({
+                usage: {
+                    outputTokens: 10,
+                    outputTokenDetails: { reasoningTokens: 100 },
+                },
+            });
+            expect(u.reasoning).toBeLessThanOrEqual(u.output);
+        },
+    );
 
     // [B27] Unicode / emoji live in TEXT, not the numeric usage fields; proven at
     // the harness layer (see [D40]). Numeric counts carry no string encoding.
@@ -404,9 +436,11 @@ describe('contract: harness + normalize — unparseable / transport fail-safe (C
             () => 0,
             { usage: null },
             { usage: undefined },
-            { get usage() {
-                return { inputTokens: 3 };
-            } },
+            {
+                get usage() {
+                    return { inputTokens: 3 };
+                },
+            },
         ];
         for (const raw of nasty) {
             expect(() => normalizeSdkUsage(raw)).not.toThrow();
@@ -425,7 +459,9 @@ describe('contract: harness + normalize — unparseable / transport fail-safe (C
             normalize: normalizeSdkResult,
             normalizeUsage: normalizeSdkUsage,
         } as unknown as ProviderModule;
-        await expect(runConformance(boom, cfg(), fx())).rejects.toThrow('build blew up');
+        await expect(runConformance(boom, cfg(), fx())).rejects.toThrow(
+            'build blew up',
+        );
     });
 
     // [C30] A throwing normalize propagates too (not silently defaulted).
@@ -438,7 +474,9 @@ describe('contract: harness + normalize — unparseable / transport fail-safe (C
                 throw new Error('normalize blew up');
             },
         } as unknown as ProviderModule;
-        await expect(runConformance(boom, cfg(), fx())).rejects.toThrow('normalize blew up');
+        await expect(runConformance(boom, cfg(), fx())).rejects.toThrow(
+            'normalize blew up',
+        );
     });
 });
 
@@ -448,9 +486,17 @@ describe('contract: input variants (D)', () => {
         const run = await runConformance(
             openaiModule,
             cfg({ model: 'o3' }),
-            fx({ usage: { inputTokens: 11, outputTokens: 22, outputTokenDetails: { reasoningTokens: 5 } } }),
+            fx({
+                usage: {
+                    inputTokens: 11,
+                    outputTokens: 22,
+                    outputTokenDetails: { reasoningTokens: 5 },
+                },
+            }),
         );
-        expect(Object.keys(run).sort()).toEqual(['model', 'raw', 'result', 'usage'].sort());
+        expect(Object.keys(run).sort()).toEqual(
+            ['model', 'raw', 'result', 'usage'].sort(),
+        );
         assertNormalizedShape(run.usage);
         expect(run.usage).toEqual({ input: 11, output: 22, reasoning: 5 });
         expect(run.result).toEqual({ usage: run.usage, raw: run.raw });
@@ -476,14 +522,29 @@ describe('contract: provider/model matrix (E) — normalization is provider-agno
     // branches, then prove normalize ignores the branch entirely.
     it('[E] capabilities().structuredOutput carries both gate branches', () => {
         // strict json_schema group
-        expect(openaiModule.capabilities('gpt-4o').structuredOutput).toBe('json_schema');
-        expect(googleGeminiModule.capabilities('gemini-2.5-flash').structuredOutput).toBe('json_schema');
-        expect(azureModule.capabilities('gpt-4o').structuredOutput).toBe('json_schema');
+        expect(openaiModule.capabilities('gpt-4o').structuredOutput).toBe(
+            'json_schema',
+        );
+        expect(
+            googleGeminiModule.capabilities('gemini-2.5-flash')
+                .structuredOutput,
+        ).toBe('json_schema');
+        expect(azureModule.capabilities('gpt-4o').structuredOutput).toBe(
+            'json_schema',
+        );
         // json_object fallback group
-        expect(novitaModule.capabilities('meta-llama/llama-3.1-70b-instruct').structuredOutput).toBe('json_object');
-        expect(openRouterModule.capabilities('x/y').structuredOutput).toBe('json_object');
+        expect(
+            novitaModule.capabilities('meta-llama/llama-3.1-70b-instruct')
+                .structuredOutput,
+        ).toBe('json_object');
+        expect(openRouterModule.capabilities('x/y').structuredOutput).toBe(
+            'json_object',
+        );
         // openai_compatible over an unknown upstream downgrades to json_object.
-        expect(openaiModule.capabilities('some-unknown-proxy-model').structuredOutput).toBe('json_object');
+        expect(
+            openaiModule.capabilities('some-unknown-proxy-model')
+                .structuredOutput,
+        ).toBe('json_object');
     });
 
     // Every registered module delegates usage extraction to the SAME shared
@@ -513,12 +574,21 @@ describe('contract: harness request-assembly & return shape (conformance.ts)', (
     // buildMockFromFixture threads cfg.model onto the mock and replays the fixture
     // (exercises toV4DoGenerateUsage: total stays full; text = max(output-reasoning,0)).
     it('buildMockFromFixture threads model id and replays fixture usage', async () => {
-        const mock = buildMockFromFixture(cfg({ model: 'my-model-x' }), fx({
-            text: 'hello',
-            usage: { inputTokens: 2, outputTokens: 10, outputTokenDetails: { reasoningTokens: 100 } },
-        }));
+        const mock = buildMockFromFixture(
+            cfg({ model: 'my-model-x' }),
+            fx({
+                text: 'hello',
+                usage: {
+                    inputTokens: 2,
+                    outputTokens: 10,
+                    outputTokenDetails: { reasoningTokens: 100 },
+                },
+            }),
+        );
         expect(mock.modelId).toBe('my-model-x');
-        const gen = await (mock as unknown as { doGenerate: (o: unknown) => Promise<any> }).doGenerate({});
+        const gen = await (
+            mock as unknown as { doGenerate: (o: unknown) => Promise<any> }
+        ).doGenerate({});
         expect(gen.content).toEqual([{ type: 'text', text: 'hello' }]);
         // reasoning (100) exceeds output (10) → text clamped to 0, total stays full 10.
         expect(gen.usage.outputTokens.text).toBe(0);
@@ -547,7 +617,13 @@ describe('contract: harness request-assembly & return shape (conformance.ts)', (
     // normalizeSdkResult ALWAYS returns { usage:D, raw } for any input — the
     // guaranteed ModelResult shape across every layer.
     it('normalizeSdkResult always returns {usage:D, raw} (even off-schema)', () => {
-        for (const raw of [null, undefined, {}, 'x', { usage: { inputTokens: 5 } }]) {
+        for (const raw of [
+            null,
+            undefined,
+            {},
+            'x',
+            { usage: { inputTokens: 5 } },
+        ]) {
             const r = normalizeSdkResult(raw);
             expect(Object.keys(r).sort()).toEqual(['raw', 'usage']);
             assertNormalizedShape(r.usage);

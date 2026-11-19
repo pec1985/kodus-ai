@@ -45,15 +45,20 @@ const FAKE_SA_JSON = Buffer.from(
         type: 'service_account',
         project_id: 'placeholder',
         client_email: 'placeholder@placeholder.iam.gserviceaccount.com',
-        private_key: '-----BEGIN PRIVATE KEY-----\nplaceholder\n-----END PRIVATE KEY-----\n',
+        private_key:
+            '-----BEGIN PRIVATE KEY-----\nplaceholder\n-----END PRIVATE KEY-----\n',
     }),
 ).toString('base64');
 
 /** Minimal per-provider config needed to BUILD (never to call). Providers whose
  *  build needs a credential shape we cannot fake are listed as unbuildable with
  *  the reason, so this file states its own coverage instead of hiding a gap. */
-const BUILDABLE: Record<string, { model: string; extra?: Record<string, any> }> = {
+const BUILDABLE: Record<
+    string,
+    { model: string; extra?: Record<string, any> }
+> = {
     openai: { model: 'gpt-5.4' },
+    chatgpt_subscription: { model: 'gpt-5.6-luna' },
     openai_compatible: {
         model: 'deepseek-v4-pro',
         extra: { baseURL: 'https://api.deepseek.com' },
@@ -83,10 +88,16 @@ const BUILDABLE: Record<string, { model: string; extra?: Record<string, any> }> 
         model: 'gpt-5.4',
         extra: { baseURL: 'https://placeholder.openai.azure.com/openai' },
     },
-    google_vertex: { model: 'gemini-3.7-flash', extra: { apiKey: FAKE_SA_JSON } },
+    google_vertex: {
+        model: 'gemini-3.7-flash',
+        extra: { apiKey: FAKE_SA_JSON },
+    },
     // Kodus routes over the upstream modules with a platform key from env (set
     // below); the slot itself carries no key.
-    kodus: { model: 'fireworks/accounts/fireworks/models/deepseek-v4-flash-0731', extra: { apiKey: '' } },
+    kodus: {
+        model: 'fireworks/accounts/fireworks/models/deepseek-v4-flash-0731',
+        extra: { apiKey: '' },
+    },
 };
 process.env.API_KODUS_PROVIDER_FIREWORKS_API_KEY = 'placeholder-platform-key';
 process.env.API_KODUS_PROVIDER_OPENAI_API_KEY = 'placeholder-platform-key';
@@ -95,18 +106,35 @@ process.env.API_KODUS_PROVIDER_GOOGLE_API_KEY = 'placeholder-platform-key';
 /** One provider id, two SDK models: Vertex builds a Gemini client for a Gemini
  *  id and an ANTHROPIC client for a Claude id, and they read different keys. The
  *  namespace is therefore per (id, model), so it needs its own case. */
-const MODEL_SPECIFIC: Array<{ id: string; model: string; extra?: Record<string, any> }> = [
-    { id: 'google_vertex', model: 'claude-opus-4-7', extra: { apiKey: FAKE_SA_JSON } },
+const MODEL_SPECIFIC: Array<{
+    id: string;
+    model: string;
+    extra?: Record<string, any>;
+}> = [
+    {
+        id: 'google_vertex',
+        model: 'claude-opus-4-7',
+        extra: { apiKey: FAKE_SA_JSON },
+    },
     // Kodus: one id, an SDK client per upstream — the namespace must follow
     // the upstream (Fireworks is spoken over openai_compatible).
-    { id: 'kodus', model: 'fireworks/accounts/fireworks/models/glm-5p3', extra: { apiKey: '' } },
-    { id: 'kodus', model: 'fireworks/accounts/fireworks/models/glm-5p3-flash', extra: { apiKey: '' } },
+    {
+        id: 'kodus',
+        model: 'fireworks/accounts/fireworks/models/glm-5p3',
+        extra: { apiKey: '' },
+    },
+    {
+        id: 'kodus',
+        model: 'fireworks/accounts/fireworks/models/glm-5p3-flash',
+        extra: { apiKey: '' },
+    },
 ];
 
 /** Every provider builds here, so nothing is deferred to the live tier. */
 const NEEDS_REAL_CREDENTIALS: string[] = [];
 
-const toCamelCase = (s: string) => s.replace(/-(.)/g, (_, c) => c.toUpperCase());
+const toCamelCase = (s: string) =>
+    s.replace(/-(.)/g, (_, c) => c.toUpperCase());
 
 /**
  * The keys the SDK will read for a built model.
@@ -120,7 +148,9 @@ const toCamelCase = (s: string) => s.replace(/-(.)/g, (_, c) => c.toUpperCase())
  * why declaring `anthropic` for it is correct rather than a workaround.
  */
 function keysTheSdkReads(sdkProvider: string): string[] {
-    const head = String(sdkProvider ?? '').split('.')[0].trim();
+    const head = String(sdkProvider ?? '')
+        .split('.')[0]
+        .trim();
     const keys = [head, toCamelCase(head)];
     if (String(sdkProvider).includes('anthropic')) keys.push('anthropic');
     return keys;

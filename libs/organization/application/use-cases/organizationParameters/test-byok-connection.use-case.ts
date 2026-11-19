@@ -22,7 +22,12 @@ import {
 } from '@libs/core/infrastructure/services/providers/kodus-provider-gate.service';
 import { ProviderService } from '@libs/core/infrastructure/services/providers/provider.service';
 import { createLogger } from '@libs/core/log/logger';
-import { BadRequestException, Injectable, Optional, Inject } from '@nestjs/common';
+import {
+    BadRequestException,
+    Injectable,
+    Optional,
+    Inject,
+} from '@nestjs/common';
 import axios, { AxiosError } from 'axios';
 import { lookup } from 'dns/promises';
 
@@ -157,7 +162,7 @@ export function notFoundAdvice(providerMessage: string | undefined): string {
         said.includes('allowed providers') ||
         (said.includes('no allowed') && said.includes('provider'))
     ) {
-        return "Your provider account allows no upstream that serves this model, so the request has nowhere to route. Allow one of the providers the model is served by, or choose a model your current ones serve — this is a routing setting on the provider account, not a problem with the key.";
+        return 'Your provider account allows no upstream that serves this model, so the request has nowhere to route. Allow one of the providers the model is served by, or choose a model your current ones serve — this is a routing setting on the provider account, not a problem with the key.';
     }
 
     if (said.trim()) {
@@ -241,6 +246,9 @@ type TestByokInput = {
     awsSecretAccessKey?: string;
     awsRegion?: string;
     awsSessionToken?: string;
+    codexAccessToken?: string;
+    codexRefreshToken?: string;
+    accountId?: string;
 };
 
 const TEST_TIMEOUT_MS = 15_000;
@@ -275,11 +283,14 @@ export class TestByokConnectionUseCase {
                 !(await this.kodusGate?.isEnabledFor(organizationId))
             ) {
                 this.logger.warn({
-                    message: 'Refused to probe the Kodus provider: org outside the private alpha',
+                    message:
+                        'Refused to probe the Kodus provider: org outside the private alpha',
                     context: TestByokConnectionUseCase.name,
                     metadata: { organizationId, provider: input?.provider },
                 });
-                throw new BadRequestException(KODUS_PROVIDER_NOT_ENABLED_MESSAGE);
+                throw new BadRequestException(
+                    KODUS_PROVIDER_NOT_ENABLED_MESSAGE,
+                );
             }
             const result = await this.runTest(input);
             this.logTestOutcome(input, result);
@@ -288,7 +299,9 @@ export class TestByokConnectionUseCase {
             // rather than on each of the six success returns keeps the next one
             // honest by default — an unstamped pass would silently read as the
             // weaker catalog check on the screen.
-            return result.ok ? { verifiedBy: 'probe' as const, ...result } : result;
+            return result.ok
+                ? { verifiedBy: 'probe' as const, ...result }
+                : result;
         } catch (err) {
             this.logger.warn({
                 message: `${LLM_ERROR_TAG} BYOK connection test rejected: provider=${input?.provider} model=${input?.model ?? '(none)'} — ${(err as Error)?.message ?? 'invalid request'}`,
@@ -408,9 +421,25 @@ export class TestByokConnectionUseCase {
             });
         }
 
+        if (byokProvider === BYOKProvider.CHATGPT_SUBSCRIPTION) {
+            if (
+                !input.codexAccessToken?.trim() ||
+                !input.codexRefreshToken?.trim() ||
+                !input.accountId?.trim()
+            ) {
+                throw new BadRequestException(
+                    'codexAccessToken, codexRefreshToken, and accountId are required for ChatGPT subscription auth',
+                );
+            }
+        }
+
         // A platform-funded (`kodus`) slot has no key to type — the probe still
         // runs the real call, with the platform key resolved inside build().
-        if (!apiKey?.trim() && !isPlatformFundedProvider(byokProvider)) {
+        if (
+            !apiKey?.trim() &&
+            !isPlatformFundedProvider(byokProvider) &&
+            byokProvider !== BYOKProvider.CHATGPT_SUBSCRIPTION
+        ) {
             throw new BadRequestException('apiKey is required');
         }
 
@@ -536,7 +565,8 @@ export class TestByokConnectionUseCase {
         return versioned
             ? {
                   ...result,
-                  message: `${result.message ?? ''} The base URL has no API version, and OpenAI-protocol gateways usually serve under /v1: try ${versioned}.`.trim(),
+                  message:
+                      `${result.message ?? ''} The base URL has no API version, and OpenAI-protocol gateways usually serve under /v1: try ${versioned}.`.trim(),
               }
             : result;
     }
@@ -628,6 +658,8 @@ export class TestByokConnectionUseCase {
             awsAccessKeyId: encryptIfPresent(input.awsAccessKeyId),
             awsSecretAccessKey: encryptIfPresent(input.awsSecretAccessKey),
             awsRegion: input.awsRegion,
+            codexAccessToken: encryptIfPresent(input.codexAccessToken),
+            accountId: input.accountId,
             awsSessionToken: encryptIfPresent(input.awsSessionToken),
         } as NormalizedModel;
     }
