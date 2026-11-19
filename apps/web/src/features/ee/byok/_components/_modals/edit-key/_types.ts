@@ -18,6 +18,9 @@ const baseFields = {
     openrouterProviderOrder: z.array(z.string()).nullable().optional(),
     openrouterAllowFallbacks: z.boolean().nullable().optional(),
     vertexLocation: z.string().trim().nullable().optional(),
+    codexAccessToken: z.string().trim().nullable().optional(),
+    codexRefreshToken: z.string().trim().nullable().optional(),
+    accountId: z.string().trim().nullable().optional(),
     awsBearerToken: z.string().trim().nullable().optional(),
     awsAccessKeyId: z.string().trim().nullable().optional(),
     awsSecretAccessKey: z.string().trim().nullable().optional(),
@@ -49,9 +52,18 @@ export const createKeySchema = z
         }
     });
 
-export const editKeySchema = z.object({
+const editKeyBase = z.object({
     ...baseFields,
     apiKey: z.string().trim().optional().default(""),
 });
 
-export type EditKeyForm = z.infer<typeof editKeySchema>;
+export type EditKeyForm = z.infer<typeof editKeyBase>;
+
+export const editKeySchema = editKeyBase.superRefine((data, ctx) => {
+    if (
+        data.provider === "chatgpt_subscription" &&
+        (data.codexAccessToken?.trim() || data.codexRefreshToken?.trim())
+    ) {
+        refineProviderCredentials(data, ctx);
+    }
+});

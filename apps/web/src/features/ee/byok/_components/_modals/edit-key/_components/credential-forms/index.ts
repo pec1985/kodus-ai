@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 
 import { BedrockFields } from "./bedrock";
+import { CodexFields } from "./codex";
 import { OpenRouterRoutingFields } from "./openrouter-advanced";
 import { VertexFields } from "./vertex";
 
@@ -20,6 +21,7 @@ import { VertexFields } from "./vertex";
  * reads/writes the RHF `EditKeyForm`, then add a line below.
  */
 export const CREDENTIAL_FORMS: Record<string, ComponentType> = {
+    chatgpt_subscription: CodexFields,
     google_vertex: VertexFields,
     amazon_bedrock: BedrockFields,
 };

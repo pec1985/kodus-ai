@@ -111,8 +111,13 @@ create or describe an LLM model. Keep this free of review/agent-specific shapes
 ## ChatGPT / Codex subscriptions
 
 The `chatgpt_subscription` provider runs reviews using subscription OAuth
-credentials. This integration is backend-only: it does not add a sign-in flow
-or a credential form to the dashboard. Model access and quotas depend on the
+credentials. In the dashboard Models settings, add the **ChatGPT / Codex
+subscription** provider. Run `codex login` locally with your ChatGPT account,
+import `~/.codex/auth.json` (or `$CODEX_HOME/auth.json`), select a model, then
+test and save. The form also accepts manual token entry. Use **Edit provider**
+to import replacement credentials; leaving both tokens blank keeps the stored
+credentials. This is credential import, not a browser OAuth sign-in flow.
+Model access and quotas depend on the
 account; the static picker is only a convenience, and a supported model id can
 be supplied directly.
 

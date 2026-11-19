@@ -10,6 +10,7 @@ import { providerAvatarTint } from "../_utils";
  * to stop the mono "O" of OpenAI/OpenRouter reading as a zero.
  */
 const BRAND_ALIAS: Record<string, string> = {
+    chatgpt_subscription: "openai",
     openai_compatible: "openai",
     anthropic_compatible: "anthropic",
     google_vertex: "google_gemini",
@@ -45,7 +46,7 @@ export function ProviderLogo({
     label: string;
     className?: string;
 }) {
-    const brandKey = provider ? BRAND_ALIAS[provider] ?? provider : undefined;
+    const brandKey = provider ? (BRAND_ALIAS[provider] ?? provider) : undefined;
     const path = brandKey ? BRAND_PATHS[brandKey] : undefined;
 
     return (

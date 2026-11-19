@@ -137,6 +137,10 @@ function ProviderGridCard({
                         <SparklesIcon size={10} className="shrink-0" />
                         No API key · pay with credits
                     </span>
+                ) : provider.id === "chatgpt_subscription" ? (
+                    <span className="text-text-tertiary text-xs">
+                        Import Codex credentials
+                    </span>
                 ) : (
                     needsEndpoint && (
                         <span className="text-text-tertiary flex items-center gap-1 text-xs">
@@ -183,7 +187,9 @@ export function ConnectProviderFlow({
     /** Rendered above the grid. Receives whether the Kodus (no-key) tile is
      *  actually in the grid, so the copy can only promise what is on screen —
      *  the registry gates `kodus` server-side, independently of the web flag. */
-    hero?: React.ReactNode | ((ctx: { kodusAvailable: boolean }) => React.ReactNode);
+    hero?:
+        | React.ReactNode
+        | ((ctx: { kodusAvailable: boolean }) => React.ReactNode);
     footer?: React.ReactNode;
 }) {
     const router = useRouter();
@@ -229,8 +235,8 @@ export function ConnectProviderFlow({
             <Card color="lv1">
                 <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
                     <p className="text-text-secondary text-sm text-balance">
-                        No providers available for this installation. Check
-                        your Kodus configuration, or reach out to support.
+                        No providers available for this installation. Check your
+                        Kodus configuration, or reach out to support.
                     </p>
                     {onCancel && (
                         <Button

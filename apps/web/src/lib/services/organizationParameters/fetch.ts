@@ -115,6 +115,9 @@ export const testBYOK = async (params: {
     openrouterProviderOrder?: string[];
     openrouterAllowFallbacks?: boolean;
     vertexLocation?: string;
+    codexAccessToken?: string;
+    codexRefreshToken?: string;
+    accountId?: string;
     awsBearerToken?: string;
     awsAccessKeyId?: string;
     awsSecretAccessKey?: string;
@@ -359,6 +362,9 @@ export const previewLLMProviderModels = async (input: {
     baseURL?: string;
     /** Amazon Bedrock's equivalent of `apiKey` — Bedrock never authenticates
      *  the connect form with a plain apiKey. */
+    codexAccessToken?: string;
+    codexRefreshToken?: string;
+    accountId?: string;
     awsBearerToken?: string;
     awsRegion?: string;
     /** List with this saved credential when the provider has several (two

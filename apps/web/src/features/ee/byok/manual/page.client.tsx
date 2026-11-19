@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { AiProvidersPageSkeleton } from "@components/system/page-skeletons";
 import { Alert, AlertDescription } from "@components/ui/alert";
 import { Button } from "@components/ui/button";
 import { Card, CardContent, CardHeader } from "@components/ui/card";
@@ -61,16 +62,14 @@ import {
 } from "../_components/_modals/edit-key/credential-config";
 import {
     buildByokBlob,
-    findReusableCredential,
     credentialSettingsFromConfig,
+    findReusableCredential,
     modelFieldsFromConfig,
     normalizeEndpoint,
 } from "../_components/byok-write";
 import { credentialSettingsOverride } from "../_components/credential-settings-override";
 import { SuccessClaim } from "../_components/success-claim";
 import { formatModelLabel } from "../_data/model-label";
-import { AiProvidersPageSkeleton } from "@components/system/page-skeletons";
-
 import { isPlatformFundedProvider } from "../_data/platform-funded";
 import { PROVIDER_LABELS } from "../_data/provider-labels";
 import {
@@ -330,6 +329,9 @@ export function ByokManualPageClient({
             // corrupt the stored secret. Leaving the fields empty mirrors
             // the apiKey pattern (line 106): empty in the form means
             // "keep existing", and the user only types when changing.
+            codexAccessToken: null,
+            codexRefreshToken: null,
+            accountId: (currentSettings.accountId as string) ?? null,
             awsBearerToken: null,
             awsAccessKeyId: null,
             awsSecretAccessKey: null,
@@ -419,6 +421,9 @@ export function ByokManualPageClient({
     const editLabel = existingConfig?.model
         ? formatModelLabel(existingConfig.model)
         : "";
+    const codexAccessToken = form.watch("codexAccessToken");
+    const codexRefreshToken = form.watch("codexRefreshToken");
+    const accountId = form.watch("accountId");
     const awsBearerToken = form.watch("awsBearerToken");
     const awsAccessKeyId = form.watch("awsAccessKeyId");
     const awsSecretAccessKey = form.watch("awsSecretAccessKey");
@@ -471,6 +476,9 @@ export function ByokManualPageClient({
         providerHasCredentials({
             provider,
             apiKey,
+            codexAccessToken,
+            codexRefreshToken,
+            accountId,
             awsBearerToken,
             awsAccessKeyId,
             awsSecretAccessKey,
@@ -481,6 +489,18 @@ export function ByokManualPageClient({
     };
 
     const runTest = async (): Promise<TestBYOKResult | null> => {
+        const codexValues = form.getValues();
+        if (
+            codexValues.provider === "chatgpt_subscription" &&
+            !codexValues.codexAccessToken?.trim() &&
+            codexValues.accountId !== targetCred?.settings?.accountId
+        ) {
+            form.setError("accountId", {
+                type: "manual",
+                message: "Import new credentials to change the account ID.",
+            });
+            return null;
+        }
         const valid = await form.trigger();
         if (!valid) return null;
 
@@ -594,6 +614,18 @@ export function ByokManualPageClient({
                         ? data.openrouterAllowFallbacks
                         : undefined,
                 vertexLocation: data.vertexLocation ?? undefined,
+                codexAccessToken:
+                    data.provider === "chatgpt_subscription"
+                        ? (data.codexAccessToken ?? undefined)
+                        : undefined,
+                codexRefreshToken:
+                    data.provider === "chatgpt_subscription"
+                        ? (data.codexRefreshToken ?? undefined)
+                        : undefined,
+                accountId:
+                    data.provider === "chatgpt_subscription"
+                        ? (data.accountId ?? undefined)
+                        : undefined,
                 awsBearerToken: data.awsBearerToken ?? undefined,
                 awsAccessKeyId: data.awsAccessKeyId ?? undefined,
                 awsSecretAccessKey: data.awsSecretAccessKey ?? undefined,
@@ -673,6 +705,21 @@ export function ByokManualPageClient({
                 data.vertexLocation?.trim()
                     ? data.vertexLocation.trim()
                     : undefined,
+            codexAccessToken: providerOwnsField(
+                data.provider,
+                "codexAccessToken",
+            )
+                ? data.codexAccessToken?.trim() || undefined
+                : undefined,
+            codexRefreshToken: providerOwnsField(
+                data.provider,
+                "codexRefreshToken",
+            )
+                ? data.codexRefreshToken?.trim() || undefined
+                : undefined,
+            accountId: providerOwnsField(data.provider, "accountId")
+                ? data.accountId?.trim() || undefined
+                : undefined,
             awsBearerToken:
                 providerOwnsField(data.provider, "awsBearerToken") &&
                 data.awsBearerToken?.trim()
